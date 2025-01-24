@@ -1,0 +1,218 @@
+#include <graphics.h>
+#include <conio.h>
+#include <stdlib.h>
+#include <time.h>
+
+// Function Prototypes
+void drawBox(int, int);
+void removeBox(int, int);
+void drawBall(int, int);
+void removeBall(int, int);
+void frontPage();
+void gameLoop();
+void displayScores(int, int);
+
+// Global Variables
+int xPos, yPos, xPosBall, yPosBall;
+int height = 22, width = 15;
+int highScore = 0;
+
+int main() {
+    int gd = DETECT, gm;
+    char replay;
+    
+    initgraph(&gd, &gm, (char*)"");
+
+    frontPage();
+
+    while (1) {
+        replay = getch();
+        if (replay == 32) { // Space to play
+            cleardevice();
+            gameLoop();
+        } else if (replay == 27) { // Escape to exit
+            break;
+        }
+    }
+
+    closegraph();
+    return 0;
+}
+
+void frontPage() {
+    int rightBoundary = 176, leftBoundary = 100, bottom = 400;
+    // Design
+    line(leftBoundary - (width + 4), 0, leftBoundary - (width + 4), bottom);
+    line(leftBoundary + width + 4, 0, leftBoundary + width + 4, bottom);
+    line(leftBoundary + 57, 0, leftBoundary + 57, bottom);
+    line(rightBoundary + width + 4, 0, rightBoundary + width + 4, bottom);
+    drawBox(138, 378);
+    drawBall(138, 300);
+     setcolor(LIGHTRED);
+    settextstyle(3, 0, 5);
+	outtextxy(getmaxx() / 2 - 150, getmaxy() / 2 - 50, "Snap-Catch O");
+	 setcolor(LIGHTRED);
+	settextstyle(3, 0, 2);
+	outtextxy(getmaxx() / 2 - 150, getmaxy() / 2, "Swift, Grab, Score!");
+	 setcolor(WHITE);
+	settextstyle(3, 0, 1);
+	outtextxy(getmaxx() / 2 - 170, getmaxy() / 2 + 50, "Press 'space' to play or 'Esc' to exit");
+
+}
+
+void gameLoop() {
+    int gd = DETECT, gm;
+    char input, replay, scoreCh[20];
+    int rightBoundary = 176, leftBoundary = 100, bottom = 400;
+    int boxLane = 1, randomLane, created = 0, speed = 3, score = 0;
+
+    yPosBall = 15;
+    xPos = 138;
+    yPos = bottom - height;
+
+    // Draw Lanes
+    line(leftBoundary - (width + 4), 0, leftBoundary - (width + 4), bottom);
+    line(leftBoundary + width + 4, 0, leftBoundary + width + 4, bottom);
+    line(leftBoundary + 57, 0, leftBoundary + 57, bottom);
+    line(rightBoundary + width + 4, 0, rightBoundary + width + 4, bottom);
+
+    // Draw Box at Startup
+    drawBox(xPos, yPos);
+    input = 75;
+
+    srand(time(NULL));
+
+    while (1) {
+        if (kbhit()) {
+            input = getch();
+            switch (input) {
+                case 75: // Left Key
+                    removeBox(xPos, yPos);
+                    xPos -= 38;
+                    boxLane--;
+                    break;
+                case 77: // Right Key
+                    removeBox(xPos, yPos);
+                    xPos += 38;
+                    boxLane++;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // Limit xPos and boxLane
+        if (xPos > rightBoundary) {
+            xPos = rightBoundary;
+            boxLane = 2;
+        } else if (xPos < leftBoundary) {
+            xPos = leftBoundary;
+            boxLane = 0;
+        }
+
+        // Update Box
+        drawBox(xPos, yPos);
+
+        // Create New Ball
+        if (!created) {
+            randomLane = rand() % 3;
+            created = 1;
+        }
+
+        // Move Ball
+        switch (randomLane) {
+            case 0:
+                xPosBall = 100;
+                removeBall(xPosBall, yPosBall - speed);
+                break;
+            case 1:
+                xPosBall = 138;
+                removeBall(xPosBall, yPosBall - speed);
+                break;
+            case 2:
+                xPosBall = 176;
+                removeBall(xPosBall, yPosBall - speed);
+                break;
+            default:
+                break;
+        }
+
+        if (yPosBall > 388) {
+            if (randomLane == boxLane) {
+                // Increase score and speed
+                created = 0;
+                yPosBall = 15;
+                ++score;
+                if (score % 3 == 0) speed++;
+            } else {
+                // Game Over
+                drawBall(xPosBall, yPosBall);
+                 setcolor(RED);
+                settextstyle(3, 0, 5);
+                outtextxy(getmaxx() / 2 - 150, getmaxy() / 2, "Game Over");
+                 
+                settextstyle(3, 0, 2);
+                setcolor(LIGHTRED);
+                outtextxy(getmaxx() / 2 - 170, getmaxy() / 2 + 50, "Press 'space' to replay or 'Esc' to exit");
+
+                while (1) {
+                    replay = getch();
+                    if (replay == 32) { // Space to replay
+                        cleardevice();
+                        created = 0;
+                        if (score > highScore) highScore = score;
+                        gameLoop();
+                        return;
+                    } else if (replay == 27) { // Escape to exit
+                        return;
+                    }
+                }
+            }
+        } else {
+            drawBall(xPosBall, yPosBall);
+            yPosBall += speed;
+        }
+
+        // Display Scores
+        displayScores(score, highScore);
+
+        delay(5);
+    }
+}
+
+void drawBox(int xpos, int ypos) {
+    setcolor(WHITE);
+    setfillstyle(SOLID_FILL, WHITE);
+    bar(xpos - width, ypos - height, xpos + width, ypos + height);
+}
+
+void removeBox(int xpos, int ypos) {
+    setcolor(BLACK);
+    setfillstyle(SOLID_FILL, BLACK);
+    bar(xpos - width, ypos - height, xpos + width, ypos + height);
+    setcolor(WHITE);
+}
+
+void drawBall(int xpos, int ypos) {
+    setcolor(WHITE);
+    setfillstyle(SOLID_FILL, WHITE);
+    fillellipse(xpos, ypos, 17, 17);
+}
+
+void removeBall(int xpos, int ypos) {
+    setcolor(BLACK);
+    setfillstyle(SOLID_FILL, BLACK);
+    fillellipse(xpos, ypos, 17, 17);
+    setcolor(WHITE);
+}
+
+void displayScores(int score, int highScore) {
+    char scoreCh[20];
+    setcolor(LIGHTRED);
+    settextstyle(3, 0, 3);
+    sprintf(scoreCh, "High Score: %d", highScore);
+    outtextxy(80, 430, scoreCh);
+    sprintf(scoreCh, "Score: %d", score);
+    outtextxy(220, 430, scoreCh);
+}
+
